@@ -1,0 +1,55 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Assinatura de release: crie android/keystore.properties (NÃO versione esse arquivo) com
+//   storeFile=../minha-chave.jks   storePassword=...   keyAlias=...   keyPassword=...
+// Sem o arquivo, o build de release sai SEM assinatura (não instala). O debug usa a chave de debug.
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
+android {
+    namespace 'com.openmirror.client'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.openmirror.client'   // NÃO mude: é o que permite atualizar sem desinstalar
+        minSdk 26
+        targetSdk 28
+        versionCode 4
+        versionName '0.3.1'
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystorePropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    lint {
+        // targetSdk 28 é proposital nesta fase (ver docs/RELATORIO_TECNICO.md); não deixa o lint barrar o build
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b111c">
+<title>OpenMirror · Seu PC no celular</title>
+<style>
+:root{color-scheme:dark;--bg:#0b111c;--card:#141e2c;--soft:#192637;--line:#29394c;--text:#f0f5ff;--muted:#9badc5;--blue:#6498ff;--green:#75debb}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:radial-gradient(ellipse 110% 360px at 50% -130px,#1a3150,transparent),var(--bg);font:15px system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);min-height:100vh}
+button,input{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.45}
+.wrap{max-width:1050px;margin:auto;padding:18px clamp(14px,4vw,36px) 36px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 22px}
+.brand{display:flex;align-items:center;gap:11px;font-size:21px;font-weight:800;letter-spacing:-.6px}.logo{display:grid;place-items:center;width:37px;height:37px;background:#335a9c;border-radius:12px;color:#e6efff;font-size:22px}
+.badge{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:30px;padding:7px 11px;white-space:nowrap}.dot{display:inline-block;width:7px;height:7px;background:#75869e;border-radius:50%;margin-right:6px}.badge.on .dot{background:var(--green);box-shadow:0 0 9px #75debb8a}
+h1{font-size:clamp(26px,5vw,36px);line-height:1.1;letter-spacing:-1px;margin:0 0 10px}p{color:var(--muted);line-height:1.5;margin:0}.eyebrow{font-size:12px;color:#87acf5;text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:11px}
+.hero{display:flex;justify-content:space-between;align-items:end;gap:25px;margin-bottom:24px}.hero p{max-width:530px}.version{font-size:12px;color:var(--muted);white-space:nowrap}
+.card{background:linear-gradient(150deg,#1a2739,#121b29);border:1px solid var(--line);border-radius:20px;padding:21px}
+.card h2{font-size:17px;margin:0 0 8px}.pair{max-width:530px;margin:34px auto;padding:26px}.pair p{margin-bottom:18px}
+.label{font-size:12px;font-weight:650;color:var(--muted);display:block;margin-bottom:8px;letter-spacing:.3px}
+input{width:100%;border:1px solid #3c4e65;border-radius:12px;background:#0c1522;color:white;padding:14px 16px;outline:none;font-size:17px;min-width:0}input:focus{border-color:var(--blue);box-shadow:0 0 0 3px #6498ff26}
+.primary{width:100%;border:0;background:var(--blue);color:#061121;font-weight:800;padding:14px;border-radius:12px;margin-top:12px;min-height:48px}.primary:hover{background:#86afff}.alert{color:#ffb0b9;font-size:13px;margin-top:12px;min-height:20px}.small{font-size:12px;color:var(--muted);margin-top:15px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.section-head h2{font-size:17px;margin:0}.meta{font-size:12px;color:var(--muted)}
+.viewer{background:#070c13;border:1px solid var(--line);border-radius:17px;overflow:hidden;position:relative;min-height:170px;display:flex;align-items:center;justify-content:center}
+.viewer img{width:100%;height:auto;display:block;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}
+.viewer .placeholder{text-align:center;padding:55px 12px;color:var(--muted);font-size:14px}.placeholder .symbol{font-size:42px;opacity:.8;margin-bottom:14px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.btn{border:1px solid #344961;color:#e6eefb;background:#1a293b;border-radius:11px;padding:11px 14px;min-height:44px;font-weight:600}.btn.active{border-color:#6096fa;color:#aacaFF;background:#1f3b65}.btn.danger{color:#ffc7cf;border-color:#5c3e4c}
+.info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}.metric{background:#111b2a;border:1px solid #25374b;padding:10px 9px;border-radius:12px}.metric .value{font-size:18px;font-weight:800;letter-spacing:-.5px;white-space:nowrap}.metric .caption{font-size:11px;color:var(--muted);margin-top:3px}
+.side .card{margin-bottom:15px}.mode{width:100%;text-align:left;display:flex;align-items:center;gap:12px;background:transparent;border:1px solid var(--line);border-radius:13px;color:var(--text);padding:12px;margin-top:10px;min-height:57px}.mode.active{background:#213b60;border-color:#5484cc}.mode .ico{font-size:22px}.mode strong{display:block;font-size:13px}.mode small{display:block;margin-top:3px;font-size:11px;color:var(--muted)}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;max-width:170px;margin:12px auto 4px}.keypad button{min-height:44px}.keypad .blank{visibility:hidden}.tinybuttons{display:flex;gap:6px;margin:10px 0}.tinybuttons button{flex:1}.row{display:flex;gap:8px}.row input{font-size:16px}.row button{white-space:nowrap}.notice{font-size:12px;color:var(--muted);line-height:1.5;margin:14px 0 0}.pill{font-size:11px;background:#34394b;border-radius:20px;padding:3px 7px;color:#cbd4e4}
+.hidden{display:none!important}
+@media(max-width:720px){.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr;gap:12px}.side .card{margin:0}.hero{align-items:start}.version{display:none}.card{padding:15px}.pair{padding:22px}}
+@media(max-width:470px){.side{grid-template-columns:1fr}.hero{margin-bottom:19px}.hero h1{font-size:29px}.viewer{border-radius:10px}.info-grid{gap:6px}.metric{padding:8px}.metric .value{font-size:16px}}
+
+.viewer:fullscreen,.viewer:-webkit-full-screen{width:100vw;height:100vh;max-height:100vh;border:0;border-radius:0;background:#000}
+.viewer:fullscreen img,.viewer:-webkit-full-screen img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
+.viewer:fullscreen .placeholder{align-self:center}
+.viewer:fullscreen .fs-exit{display:block}
+.fs-exit{display:none;position:absolute;top:12px;right:12px;z-index:5;background:#18283cde;border:1px solid #5877a3;color:white;border-radius:12px;padding:12px}
+</style>
+</head>
+<body><div class="wrap">
+<header><div class="brand"><div class="logo">◈</div>OpenMirror</div><div id="badge" class="badge"><span class="dot"></span><span id="badgeText">Desconectado</span></div></header>
+<div class="hero"><div><div class="eyebrow">Windows → Android</div><h1>Seu PC. Onde você estiver em casa.</h1><p>Espelhe a área de trabalho e controle o mouse e o teclado, usando somente sua rede local.</p></div><div class="version">PERFORMANCE UPDATE · v0.3.0</div></div>
+<section id="pairScreen" class="card pair"><h2>Conectar ao computador</h2><p>Abra o OpenMirror no Windows e digite o código de 4 dígitos exibido no painel do PC.</p><form id="pairForm"><label class="label" for="pin">CÓDIGO DE PAREAMENTO</label><input id="pin" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="one-time-code" placeholder="0000" required><button class="primary" type="submit">Conectar com segurança →</button></form><div class="alert" id="pairError" aria-live="polite"></div><div class="small">🔒 Use somente em uma rede privada confiável. Esta prévia ainda não utiliza criptografia de transporte.</div></section>
+<main id="dashboard" class="layout hidden">
+<section><div class="section-head"><h2>Visualização ao vivo</h2><span class="meta">Monitor principal · MJPEG</span></div>
+<div class="viewer" id="viewer"><button id="exitFull" class="fs-exit" type="button">Sair da tela cheia ✕</button><div class="placeholder" id="placeholder"><div class="symbol">▣</div>Preparando a transmissão…</div><img id="screen" class="hidden" alt="Tela ao vivo do computador Windows" draggable="false"></div>
+<div class="actions"><button class="btn" id="fullBtn" type="button">⛶ Tela cheia</button><button class="btn active" id="touchBtn" type="button">☝ Toque: ligado</button><button class="btn" id="leftBtn" type="button">◉ Clique</button><button class="btn" id="rightBtn" type="button">↗ Direito</button><button class="btn danger" id="disconnectBtn" type="button">Desconectar</button></div>
+<div class="info-grid"><div class="metric"><div class="value" id="fps">—</div><div class="caption">FPS real / meta</div></div><div class="metric"><div class="value" id="latency">—</div><div class="caption">RTT de controle*</div></div><div class="metric"><div class="value">LAN</div><div class="caption">Conexão local</div></div></div>
+<p class="notice">* RTT de controle mede o caminho de rede/comando, não o atraso real da imagem. Toque na tela para clicar; mantenha pressionado para botão direito. Arraste o dedo para mover o mouse.</p>
+</section>
+<aside class="side"><div class="card"><h2>Modos</h2><button type="button" class="mode active" id="desktopMode"><span class="ico">▣</span><span><strong>Espelhamento</strong><small>Imagem e controle por toque</small></span></button><button type="button" class="mode" disabled title="Requer driver de monitor virtual"><span class="ico">▤</span><span><strong>Segundo monitor</strong><small>Próxima versão</small></span><span class="pill">EM BREVE</span></button><button type="button" class="mode" disabled title="Baixa latência e controles virtuais ainda em desenvolvimento"><span class="ico">🎮</span><span><strong>Gaming</strong><small>Próxima versão</small></span></button><button type="button" class="mode active" id="remoteMode"><span class="ico">⌨</span><span><strong>Controle remoto</strong><small>Mouse e teclado disponíveis</small></span></button></div>
+<div class="card"><h2>Teclado remoto</h2><label class="label" for="textInput">DIGITAR NO WINDOWS</label><form id="textForm" class="row"><input id="textInput" maxlength="250" type="text" placeholder="Digite aqui…"><button class="btn" type="submit">Enviar</button></form><div class="tinybuttons"><button class="btn" data-key="enter" type="button">Enter ↵</button><button class="btn" data-key="backspace" type="button">⌫</button><button class="btn" data-key="escape" type="button">Esc</button></div><div class="keypad"><span class="blank"></span><button type="button" class="btn" data-key="up">↑</button><span class="blank"></span><button type="button" class="btn" data-key="left">←</button><button type="button" class="btn" data-key="down">↓</button><button type="button" class="btn" data-key="right">→</button></div><div class="tinybuttons"><button type="button" class="btn" id="scrollUp">Rolar ↑</button><button type="button" class="btn" id="scrollDown">Rolar ↓</button></div></div>
+</aside></main>
+</div>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+let session=sessionStorage.getItem('omSession')||'';
+let control=true, pointer=null, longTimer=0, longUsed=false, dragged=false, lastMove=0, lastCoords={x:.5,y:.5}, checkTimer=0, controlSocket=null, probeId=0, probeTime=0;
+function badge(connected){$('badge').classList.toggle('on',connected);$('badgeText').textContent=connected?'Conectado':'Desconectado';}
+async function api(path,data){let res=await fetch(path,{method:data?'POST':'GET',headers:{'X-OpenMirror-Session':session,...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined,cache:'no-store'});if(!res.ok){if(res.status===401)throw Error('Sessão expirada. Faça o pareamento novamente.');throw Error(await res.text()||'Falha na comunicação.');}return res.json();}
+function error(msg){$('pairError').textContent=msg;}
+function connectControl(){if(controlSocket){controlSocket.close();controlSocket=null;}const scheme=location.protocol==='https:'?'wss:':'ws:';try{const socket=new WebSocket(scheme+'//'+location.host+'/ws/input?session='+encodeURIComponent(session));controlSocket=socket;socket.onmessage=e=>{try{const r=JSON.parse(e.data);if(r.type==='pong'&&r.id===probeId){$('latency').textContent=Math.round(performance.now()-probeTime)+' ms';}}catch(_){}};socket.onerror=()=>{};}catch(_){}}
+async function send(data){if(!control&&['move','tap','right','double','down','up'].includes(data.action))return;
+if(controlSocket&&controlSocket.readyState===WebSocket.OPEN&&controlSocket.bufferedAmount<8192){controlSocket.send(JSON.stringify(data));return;}
+if(data.action==='move')return; // avoid piling up HTTP cursor requests when WS is unavailable
+try{await api('/api/input',data);}catch(e){console.warn('OpenMirror: comando não enviado:',e.message);}}
+async function refresh(){if(!session)return;try{if(!controlSocket||controlSocket.readyState===WebSocket.CLOSED)connectControl();let start=performance.now();let status=await api('/api/status');let latency=Math.round(performance.now()-start);$('fps').textContent=(status.actual_fps||0).toFixed(1)+' / '+status.fps;if(controlSocket&&controlSocket.readyState===WebSocket.OPEN){probeId++;probeTime=performance.now();controlSocket.send(JSON.stringify({action:'ping',id:probeId}));}else{$('latency').textContent=latency+' ms (HTTP)';}badge(true);}catch(e){leave(e.message);}}
+function join(){if(!session)return;error('');$('pairScreen').classList.add('hidden');$('dashboard').classList.remove('hidden');$('placeholder').classList.remove('hidden');$('screen').classList.add('hidden');const img=$('screen');img.onload=()=>{img.classList.remove('hidden');$('placeholder').classList.add('hidden');};img.onerror=()=>{$('placeholder').textContent='Não foi possível iniciar o vídeo. Verifique o servidor.';};img.src='/stream?session='+encodeURIComponent(session);connectControl();refresh();clearInterval(checkTimer);checkTimer=setInterval(refresh,4000);}
+function leave(message){if(controlSocket){controlSocket.close();controlSocket=null;}clearInterval(checkTimer);checkTimer=0;session='';sessionStorage.removeItem('omSession');$('screen').removeAttribute('src');$('screen').classList.add('hidden');$('dashboard').classList.add('hidden');$('pairScreen').classList.remove('hidden');badge(false);error(message||'');}
+$('pairForm').addEventListener('submit',async e=>{e.preventDefault();let pin=$('pin').value.trim();if(!/^\d{4}$/.test(pin)){error('Digite os 4 números do código.');return;}try{let res=await fetch('/api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})});if(!res.ok)throw Error(res.status===429?'Muitas tentativas. Aguarde 1 minuto.':'Código inválido ou servidor indisponível.');const data=await res.json();session=data.session;sessionStorage.setItem('omSession',session);$('pin').value='';join();}catch(ex){error(ex.message);}});
+$('disconnectBtn').addEventListener('click',async()=>{try{await api('/api/disconnect',{});}catch(e){}leave('Conexão encerrada neste aparelho.');});
+$('fullBtn').addEventListener('click',()=>{const v=$('viewer');if(document.fullscreenElement){document.exitFullscreen?.();}else if(v.requestFullscreen){v.requestFullscreen().catch(()=>{alert('Seu navegador não liberou tela cheia. No APK nativo, ela é automática.');});}else{alert('Tela cheia não suportada neste navegador.');}});
+$('exitFull').addEventListener('click',()=>document.exitFullscreen?.());
+$('touchBtn').addEventListener('click',()=>{control=!control;$('touchBtn').textContent=control?'☝ Toque: ligado':'☝ Toque: desligado';$('touchBtn').classList.toggle('active',control);});
+$('leftBtn').addEventListener('click',()=>send({...lastCoords,action:'tap'}));$('rightBtn').addEventListener('click',()=>send({...lastCoords,action:'right'}));
+$('textForm').addEventListener('submit',e=>{e.preventDefault();let value=$('textInput').value;if(!value)return;send({action:'text',text:value});$('textInput').value='';});
+document.querySelectorAll('[data-key]').forEach(b=>b.addEventListener('click',()=>send({action:'key',key:b.dataset.key})));
+$('scrollUp').addEventListener('click',()=>send({action:'scroll',direction:'up'}));$('scrollDown').addEventListener('click',()=>send({action:'scroll',direction:'down'}));
+const img=$('screen');
+function coords(e){const r=img.getBoundingClientRect();return {x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))};}
+var startCoords=null,dragPressed=false;
+img.addEventListener('pointerdown',e=>{if(!control)return;e.preventDefault();pointer={id:e.pointerId,x:e.clientX,y:e.clientY};dragged=false;longUsed=false;lastCoords=coords(e);startCoords=lastCoords;dragPressed=false;try{img.setPointerCapture(e.pointerId);}catch(_){}clearTimeout(longTimer);longTimer=setTimeout(()=>{if(pointer&&!dragged){longUsed=true;send({...lastCoords,action:'right'});}},650);});
+img.addEventListener('pointermove',e=>{if(!pointer||pointer.id!==e.pointerId)return;let dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(!dragged&&Math.hypot(dx,dy)>9){dragged=true;clearTimeout(longTimer);if(startCoords){send({...startCoords,action:'down'});dragPressed=true;}}lastCoords=coords(e);if(dragged&&performance.now()-lastMove>45){lastMove=performance.now();send({...lastCoords,action:'move'});}});
+img.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;e.preventDefault();clearTimeout(longTimer);lastCoords=coords(e);if(dragPressed){send({...lastCoords,action:'up'});dragPressed=false;}else if(!dragged&&!longUsed)send({...lastCoords,action:'tap'});pointer=null;});
+img.addEventListener('pointercancel',e=>{clearTimeout(longTimer);if(dragPressed&&lastCoords){send({...lastCoords,action:'up'});}dragPressed=false;pointer=null;});
+img.addEventListener('pointercancel',()=>{clearTimeout(longTimer);pointer=null;});
+img.addEventListener('contextmenu',e=>e.preventDefault());
+if(session)join();
+})();
+</script>
+</body>
+</html>

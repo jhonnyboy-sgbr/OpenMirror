@@ -1,0 +1,31 @@
+OpenMirror 0.3.1 - Gerar o APK
+
+REQUISITOS: Android Studio recente (JDK 17 ou mais novo), Android SDK Platform 35 e internet na
+primeira sincronizacao do Gradle.
+
+APK DE DEBUG (para testar)
+1. Android Studio > Open > escolha esta pasta "android".
+2. O arquivo gradle/wrapper/gradle-wrapper.properties pede o Gradle 8.9: o Android Studio baixa sozinho.
+   (O gradle-wrapper.jar nao vai no ZIP. Na linha de comando: "gradle wrapper --gradle-version 8.9".)
+3. Build > Build Bundle(s) / APK(s) > Build APK(s).
+4. Saida: app/build/outputs/apk/debug/app-debug.apk -> copie para o celular e instale.
+
+ATUALIZAR SEM DESINSTALAR
+O Android so deixa atualizar se o APK novo tiver o MESMO applicationId (com.openmirror.client, nao mude)
+E a MESMA chave de assinatura. A chave de debug e diferente em cada computador: se compilar em outro PC,
+o Android recusa a atualizacao ("conflito de pacote") e voce tera que desinstalar. Para nao ter esse problema,
+crie uma chave sua e use SEMPRE ela:
+  keytool -genkeypair -v -keystore openmirror.jks -alias openmirror -keyalg RSA -keysize 2048 -validity 10000
+Guarde o .jks e as senhas (sem eles, nunca mais da para atualizar o app). Depois crie android/keystore.properties:
+  storeFile=../openmirror.jks
+  storePassword=SUA_SENHA
+  keyAlias=openmirror
+  keyPassword=SUA_SENHA
+(NAO coloque esse arquivo nem o .jks em lugar publico.) Build > Generate Signed App Bundle / APK ou
+"gradle assembleRelease" gera app/build/outputs/apk/release/app-release.apk ja assinado.
+Sem o keystore.properties o build de release sai SEM assinatura e nao instala.
+
+ESTE ZIP NAO TRAZ APK COMPILADO. O codigo Java foi verificado so contra "stubs" do SDK (scripts/check_android_java.py)
+e a logica pura foi testada no JVM; ele ainda nao foi compilado com o SDK real nem executado num celular.
+Se o Gradle ou o app derem erro, copie a mensagem exata e mande.
+Para H.264 o PC precisa de FFmpeg. O modo MJPEG (WebView) funciona sem FFmpeg.

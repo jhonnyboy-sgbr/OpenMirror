@@ -1,0 +1,14 @@
+.venv/
+windows/.venv/
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/local.properties
+**/__pycache__/
+*.pyc
+*.pyo
+*.log
+*.lnk
+windows/tools/
+h264-logcat.txt
