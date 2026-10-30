@@ -22,6 +22,8 @@ final class Immersive {
             Window w = activity.getWindow();
             if (Build.VERSION.SDK_INT >= 30) {
                 w.setDecorFitsSystemWindows(false);
+                View decor = w.getDecorView();
+                if (decor == null) return;
                 WindowInsetsController c = w.getInsetsController();
                 if (c != null) {
                     c.hide(WindowInsets.Type.systemBars());
@@ -44,6 +46,8 @@ final class Immersive {
             Window w = activity.getWindow();
             if (Build.VERSION.SDK_INT >= 30) {
                 w.setDecorFitsSystemWindows(true);
+                View decor = w.getDecorView();
+                if (decor == null) return;
                 WindowInsetsController c = w.getInsetsController();
                 if (c != null) c.show(WindowInsets.Type.systemBars());
             } else {

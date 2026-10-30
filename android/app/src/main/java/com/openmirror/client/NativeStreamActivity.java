@@ -169,7 +169,6 @@ public class NativeStreamActivity extends Activity implements SurfaceHolder.Call
         guard("orientação", () -> setRequestedOrientation(ORIENTATIONS[orientationIndex()]));
         guard("tela ligada", () -> getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON));
         guard("recorte", this::useDisplayCutout);
-        guard("tela cheia", this::applyImmersive);
 
         host = getIntent().getStringExtra("host");
         pin = getIntent().getStringExtra("pin");
@@ -181,6 +180,7 @@ public class NativeStreamActivity extends Activity implements SurfaceHolder.Call
         root = new FrameLayout(this);
         root.setBackgroundColor(BG);
         setContentView(root);
+        guard("tela cheia", this::applyImmersive);
         videoContainer = new FrameLayout(this);
         root.addView(videoContainer, new FrameLayout.LayoutParams(-1, -1));
         surface = new SurfaceView(this);
