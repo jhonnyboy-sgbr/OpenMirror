@@ -38,6 +38,7 @@ melhor** (Fase 1 do plano), não adicionar recursos novos de uma vez.
 2. Para uso simples, dê duplo clique em [`downloads/OpenMirror.exe`](downloads/OpenMirror.exe).
    O executável já inclui o painel, o servidor e as dependências Python; o FFmpeg continua opcional
    para H.264 e deve ficar no PATH ou em `downloads/tools/`.
+   Também é possível usar o atalho [`OpenMirror.lnk`](OpenMirror.lnk) na raiz do projeto.
 3. Como alternativa para desenvolvimento, dê duplo clique em `windows/INICIAR_OPENMIRROR.bat` (requer Python 3.11+ com *Add Python to PATH*;
    instala `aiohttp`, `mss` e `Pillow` na primeira vez).
 4. No painel, olhe a linha do **FFmpeg**: ela diz o que o seu FFmpeg tem (x264, DXGI, AMD AMF) e **se o

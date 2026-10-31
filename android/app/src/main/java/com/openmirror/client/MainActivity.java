@@ -6,10 +6,12 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.net.Uri;
 import android.net.DhcpInfo;
 import android.net.wifi.WifiManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
@@ -38,10 +40,12 @@ import java.util.regex.Pattern;
 public class MainActivity extends Activity {
     private static final int BG = Color.rgb(11, 17, 28);
     private static final int CARD = Color.rgb(23, 35, 53);
+    private static final int DARK_PAGE = Color.rgb(6, 11, 19);
     private static final int TXT = Color.rgb(239, 245, 255);
     private static final int BLUE = Color.rgb(105, 157, 255);
+    private static final String GITHUB_URL = "https://github.com/jhonnyboy-sgbr/OpenMirror";
     private static final Pattern HOST = Pattern.compile("^(localhost|(?:[0-9]{1,3}\\.){3}[0-9]{1,3})(?::[0-9]{1,5})?$");
-    private LinearLayout root;
+    private FrameLayout root;
     private WebView browser;
     private String webHost;
     private LinearLayout webToolbar;
@@ -49,6 +53,7 @@ public class MainActivity extends Activity {
     private View customView;
     private WebChromeClient.CustomViewCallback customCallback;
     private boolean menuOpen;
+    private FrameLayout drawer;
 
     private int dp(int n) { return (int)(n * getResources().getDisplayMetrics().density + .5f); }
 
@@ -56,12 +61,14 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
-        root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
+        root = new FrameLayout(this);
         root.setBackgroundColor(BG);
         setContentView(root);
         showLauncher();
         showLastCrash();
+        if (!getPreferences(MODE_PRIVATE).getBoolean("welcome_dismissed", false)) {
+            root.postDelayed(this::showWelcome, 350);
+        }
     }
 
     /** Se o app fechou por erro (ou capturou um erro) da última vez, mostra o texto e deixa copiar. */
@@ -80,6 +87,53 @@ public class MainActivity extends Activity {
                 .show();
     }
 
+    private void showWelcome() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        int padding = dp(8);
+        content.setPadding(padding, 0, padding, 0);
+
+        TextView message = text(
+                "O OpenMirror transforma o celular em uma tela de controle remoto para o Windows.\n\n"
+                        + "Para começar:\n"
+                        + "1. Inicie o OpenMirror no PC.\n"
+                        + "2. Informe o endereço do PC ou procure na rede.\n"
+                        + "3. Digite o PIN exibido no painel Windows.\n"
+                        + "4. Toque em Conectar.",
+                14, false);
+        message.setTextColor(Color.rgb(182, 195, 218));
+        content.addView(message);
+
+        TextView repository = text("Visite o repositório no GitHub", 14, false);
+        repository.setTextColor(BLUE);
+        repository.setPaintFlags(repository.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
+        repository.setPadding(0, dp(16), 0, dp(10));
+        repository.setOnClickListener(v -> openRepository());
+        content.addView(repository);
+
+        CheckBox dontShow = new CheckBox(this);
+        dontShow.setText("Não exibir novamente");
+        dontShow.setTextColor(TXT);
+        dontShow.setTextSize(14);
+        content.addView(dontShow);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Bem-vindo ao OpenMirror")
+                .setView(content)
+                .setPositiveButton("Começar", (d, w) -> getPreferences(MODE_PRIVATE).edit()
+                        .putBoolean("welcome_dismissed", dontShow.isChecked()).apply())
+                .create();
+        dialog.show();
+    }
+
+    private void openRepository() {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_URL)));
+        } catch (RuntimeException e) {
+            Toast.makeText(this, "Não foi possível abrir o GitHub.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private TextView text(String text, int sp, boolean bold) {
         TextView v = new TextView(this);
         v.setText(text); v.setTextSize(sp); v.setTextColor(TXT);
@@ -94,6 +148,15 @@ public class MainActivity extends Activity {
         b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(BLUE));
         b.setMinHeight(dp(50));
         return b;
+    }
+
+    private void styleMenuOption(Button option) {
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(CARD);
+        background.setStroke(dp(1), DARK_PAGE);
+        background.setCornerRadius(dp(6));
+        option.setBackground(background);
+        option.setTextColor(TXT);
     }
 
     private void clear() {
@@ -132,7 +195,7 @@ public class MainActivity extends Activity {
         clear();
         Immersive.clear(this);
         ScrollView scroll = new ScrollView(this);
-        root.addView(scroll, new LinearLayout.LayoutParams(-1, -1));
+        root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(25), dp(35), dp(25), dp(28));
@@ -217,53 +280,88 @@ public class MainActivity extends Activity {
 
     private void toggleMenu() {
         if (menuOpen) {
-            showLauncher();
+            closeMenu();
             return;
         }
         menuOpen = true;
-        clear();
+        drawer = new FrameLayout(this);
+        drawer.setBackgroundColor(CARD);
+        drawer.setElevation(dp(12));
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(BG);
         page.setPadding(dp(25), dp(35), dp(25), dp(28));
-        root.addView(page, new LinearLayout.LayoutParams(-1, -1));
-        TextView title = text("☰  Menu", 28, true);
-        page.addView(title);
+        drawer.addView(page, new FrameLayout.LayoutParams(dp(310), -1));
+        FrameLayout.LayoutParams drawerParams = new FrameLayout.LayoutParams(
+                dp(310), -1, Gravity.START);
+        drawerParams.leftMargin = -dp(310);
+        root.addView(drawer, drawerParams);
+        drawer.post(() -> drawer.animate().translationX(dp(310)).setDuration(220).start());
+        Button close = button("☰");
+        close.setTextSize(20);
+        close.setBackgroundTintList(android.content.res.ColorStateList.valueOf(CARD));
+        close.setTextColor(TXT);
+        page.addView(close, new LinearLayout.LayoutParams(dp(52), dp(48)));
+        close.setOnClickListener(v -> closeMenu());
+        TextView title = text("Menu", 28, true);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, -2);
+        titleParams.topMargin = dp(18);
+        page.addView(title, titleParams);
         TextView subtitle = text("OpenMirror", 14, false);
         subtitle.setTextColor(Color.rgb(158, 177, 206));
         page.addView(subtitle);
-        Button settings = button("⚙  Configurações");
-        settings.setBackgroundTintList(android.content.res.ColorStateList.valueOf(CARD));
-        settings.setTextColor(TXT);
-        LinearLayout.LayoutParams settingsSpace = new LinearLayout.LayoutParams(-1, dp(56));
-        settingsSpace.topMargin = dp(35);
-        page.addView(settings, settingsSpace);
-        settings.setOnClickListener(v -> showSettings());
-        Button back = button("←  Voltar ao painel");
-        back.setBackgroundTintList(android.content.res.ColorStateList.valueOf(BG));
-        back.setTextColor(TXT);
-        page.addView(back, new LinearLayout.LayoutParams(-1, dp(56)));
-        back.setOnClickListener(v -> {
+        Button dashboard = button("⌂  Painel principal");
+        styleMenuOption(dashboard);
+        LinearLayout.LayoutParams dashboardSpace = new LinearLayout.LayoutParams(-1, dp(50));
+        dashboardSpace.topMargin = dp(28);
+        page.addView(dashboard, dashboardSpace);
+        dashboard.setOnClickListener(v -> {
             menuOpen = false;
             showLauncher();
         });
+        Button settings = button("⚙  Configurações");
+        styleMenuOption(settings);
+        LinearLayout.LayoutParams settingsSpace = new LinearLayout.LayoutParams(-1, dp(50));
+        settingsSpace.topMargin = dp(12);
+        page.addView(settings, settingsSpace);
+        settings.setOnClickListener(v -> showSettings());
+        Button tutorial = button("📖  Tutorial");
+        styleMenuOption(tutorial);
+        LinearLayout.LayoutParams tutorialSpace = new LinearLayout.LayoutParams(-1, dp(50));
+        tutorialSpace.topMargin = dp(12);
+        page.addView(tutorial, tutorialSpace);
+        tutorial.setOnClickListener(v -> showTutorial());
+    }
+
+    private void closeMenu() {
+        if (drawer == null) {
+            menuOpen = false;
+            return;
+        }
+        menuOpen = false;
+        drawer.animate().translationX(-dp(310)).setDuration(180)
+                .withEndAction(() -> {
+                    if (drawer != null) {
+                        root.removeView(drawer);
+                        drawer = null;
+                    }
+                }).start();
     }
 
     private void showSettings() {
+        closeMenu();
         clear();
         LinearLayout page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(BG);
+        page.setBackgroundColor(DARK_PAGE);
         page.setPadding(dp(25), dp(35), dp(25), dp(28));
-        root.addView(page, new LinearLayout.LayoutParams(-1, -1));
-        Button back = button("←  Voltar ao menu");
-        back.setBackgroundTintList(android.content.res.ColorStateList.valueOf(BG));
+        root.addView(page, new FrameLayout.LayoutParams(-1, -1));
+        Button back = button("←");
+        back.setBackgroundTintList(android.content.res.ColorStateList.valueOf(DARK_PAGE));
         back.setTextColor(TXT);
-        page.addView(back, new LinearLayout.LayoutParams(-1, dp(50)));
-        back.setOnClickListener(v -> {
-            menuOpen = false;
-            toggleMenu();
-        });
+        LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(dp(52), dp(50));
+        backParams.gravity = Gravity.LEFT;
+        page.addView(back, backParams);
+        back.setOnClickListener(v -> toggleMenu());
         TextView title = text("Configurações", 28, true);
         LinearLayout.LayoutParams titleSpace = new LinearLayout.LayoutParams(-1, -2);
         titleSpace.topMargin = dp(15);
@@ -290,16 +388,73 @@ public class MainActivity extends Activity {
         page.addView(apply, applySpace);
         apply.setOnClickListener(v -> {
             getPreferences(MODE_PRIVATE).edit().putBoolean("use_mjpeg", mjpeg.isChecked()).apply();
+            apply.setText("Aplicado");
+            apply.setEnabled(false);
             Toast.makeText(this, "Configuração aplicada.", Toast.LENGTH_SHORT).show();
         });
-        Button home = button("←  Voltar ao painel");
-        home.setBackgroundTintList(android.content.res.ColorStateList.valueOf(BG));
-        home.setTextColor(TXT);
-        page.addView(home, new LinearLayout.LayoutParams(-1, dp(56)));
-        home.setOnClickListener(v -> {
-            menuOpen = false;
-            showLauncher();
+        mjpeg.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            apply.setText("Aplicar");
+            apply.setEnabled(true);
         });
+        apply.setEnabled(false);
+        apply.setText("Aplicar");
+    }
+
+    private void showTutorial() {
+        closeMenu();
+        clear();
+        ScrollView scroll = new ScrollView(this);
+        scroll.setBackgroundColor(DARK_PAGE);
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setBackgroundColor(DARK_PAGE);
+        page.setPadding(dp(25), dp(35), dp(25), dp(28));
+        scroll.addView(page);
+        root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+
+        Button back = button("←");
+        back.setBackgroundTintList(android.content.res.ColorStateList.valueOf(DARK_PAGE));
+        back.setTextColor(TXT);
+        LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(dp(52), dp(50));
+        backParams.gravity = Gravity.LEFT;
+        page.addView(back, backParams);
+        back.setOnClickListener(v -> toggleMenu());
+
+        TextView title = text("Tutorial", 28, true);
+        LinearLayout.LayoutParams titleSpace = new LinearLayout.LayoutParams(-1, -2);
+        titleSpace.topMargin = dp(15);
+        page.addView(title, titleSpace);
+
+        TextView instructions = text(
+                "1. Prepare o PC\n\n"
+                        + "Abra o OpenMirror.exe no Windows e clique em Iniciar transmissão. "
+                        + "O painel mostrará o endereço do PC e um PIN de 4 dígitos.\n\n"
+                        + "2. Conecte o celular\n\n"
+                        + "O celular e o PC devem estar na mesma rede local. Digite o endereço "
+                        + "do PC e o PIN, ou use Procurar PC na rede.\n\n"
+                        + "3. Escolha o vídeo\n\n"
+                        + "H.264 nativo é o modo recomendado. Se o FFmpeg não estiver disponível "
+                        + "ou houver incompatibilidade, abra Menu > Configurações e ative MJPEG compatível.\n\n"
+                        + "4. Controle o Windows\n\n"
+                        + "Toque para clicar, arraste para mover janelas, use dois dedos para rolar "
+                        + "e mantenha pressionado para clicar com o botão direito. No vídeo, três dedos "
+                        + "mostram ou escondem os controles.\n\n"
+                        + "Dicas\n\n"
+                        + "Use Wi-Fi 5 GHz para reduzir atrasos. Para USB, ative a depuração USB e "
+                        + "use adb reverse conforme as instruções do repositório. Nunca exponha a porta "
+                        + "do OpenMirror diretamente à internet.",
+                14, false);
+        instructions.setTextColor(Color.rgb(182, 195, 218));
+        LinearLayout.LayoutParams instructionsSpace = new LinearLayout.LayoutParams(-1, -2);
+        instructionsSpace.topMargin = dp(20);
+        page.addView(instructions, instructionsSpace);
+
+        TextView repository = text("Abrir documentação no GitHub", 14, false);
+        repository.setTextColor(BLUE);
+        repository.setPaintFlags(repository.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
+        repository.setPadding(0, dp(22), 0, dp(12));
+        repository.setOnClickListener(v -> openRepository());
+        page.addView(repository);
     }
 
     /** Procura PCs com o OpenMirror aberto na mesma rede (UDP, sem nenhum segredo trafegando). */
@@ -357,7 +512,7 @@ public class MainActivity extends Activity {
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setPadding(dp(15), 0, dp(12), 0);
         toolbar.setBackgroundColor(CARD);
-        root.addView(toolbar, new LinearLayout.LayoutParams(-1, dp(54)));
+        root.addView(toolbar, new FrameLayout.LayoutParams(-1, dp(54)));
         webToolbar = toolbar;
         TextView title = text("◈  OpenMirror · Compatível", 16, true);
         toolbar.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
@@ -390,7 +545,9 @@ public class MainActivity extends Activity {
 
             @Override public void onHideCustomView() { exitCustomView(); }
         });
-        root.addView(browser, new LinearLayout.LayoutParams(-1, 0, 1));
+        FrameLayout.LayoutParams browserParams = new FrameLayout.LayoutParams(-1, -1);
+        browserParams.topMargin = dp(54);
+        root.addView(browser, browserParams);
         browser.loadUrl(base + "/");
         Immersive.useCutout(getWindow());
         Immersive.apply(this);   // modo compatível já abre sem barras do sistema

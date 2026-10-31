@@ -11,6 +11,7 @@ android/local.properties
 *.log
 windows/openmirror_settings.json
 *.lnk
+!/OpenMirror.lnk
 windows/tools/
 windows/build-pyinstaller/
 windows/OpenMirror.spec

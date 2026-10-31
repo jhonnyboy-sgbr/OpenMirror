@@ -196,9 +196,13 @@ class BacklogQueue:
 
 # ------------------------------------------------------------------- FFmpeg
 def locate_ffmpeg(base: Path) -> Optional[str]:
-    bundled = base / 'tools' / 'ffmpeg.exe'
-    if bundled.is_file():
-        return str(bundled)
+    candidates = (
+        base / 'tools' / 'ffmpeg.exe',
+        base.parent / 'windows' / 'tools' / 'ffmpeg.exe',
+    )
+    for bundled in candidates:
+        if bundled.is_file():
+            return str(bundled)
     return shutil.which('ffmpeg')
 
 

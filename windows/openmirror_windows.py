@@ -6,6 +6,7 @@ import subprocess
 import sys
 import threading
 import tkinter as tk
+import webbrowser
 from pathlib import Path
 from tkinter import messagebox
 
@@ -42,15 +43,20 @@ class Window:
         self.preset = tk.StringVar(value='Equilibrado')
         self.capture = tk.StringVar(value='auto')
         self.eager = tk.BooleanVar(value=False)
-        self.ffmpeg_info = tk.StringVar(value='Verificando FFmpeg…')
+        self.ffmpeg_info = tk.StringVar(value='Aguardando análise inicial do FFmpeg…')
         self.state = tk.StringVar(value='Servidor desligado')
         self.active_settings = tk.StringVar()
+        self.welcome_dismissed = False
+        self.ffmpeg_initial_analysis_done = False
         self.load_settings()
         self.build()
         self.update_active_settings()
         self.root.protocol('WM_DELETE_WINDOW', self.close)
         self.root.after(800, self.check)
-        threading.Thread(target=self.probe, daemon=True).start()
+        if not self.welcome_dismissed:
+            self.root.after(350, self.show_welcome)
+        if not self.ffmpeg_initial_analysis_done:
+            self.root.after(900, self.run_initial_ffmpeg_analysis)
 
     def label(self, text: str, size=11, bold=False, color=TEXT, parent=None):
         owner = parent or self.root
@@ -70,6 +76,10 @@ class Window:
             self.encoder.set(values['encoder'])
             self.capture.set(values['capture'])
             self.eager.set(values['eager'])
+            self.welcome_dismissed = bool(values.get('welcome_dismissed', False))
+            self.ffmpeg_initial_analysis_done = bool(
+                values.get('ffmpeg_initial_analysis_done', False)
+            )
             if self.encoder.get() not in ('software', 'amd'):
                 raise ValueError('encoder inválido')
             if self.capture.get() not in ('gdigrab', 'ddagrab', 'auto'):
@@ -86,6 +96,7 @@ class Window:
             self.encoder.set('software')
             self.capture.set('auto')
             self.eager.set(False)
+            self.ffmpeg_initial_analysis_done = False
 
     def save_settings(self):
         values = {
@@ -95,6 +106,8 @@ class Window:
             'encoder': self.encoder.get(),
             'capture': self.capture.get(),
             'eager': self.eager.get(),
+            'welcome_dismissed': self.welcome_dismissed,
+            'ffmpeg_initial_analysis_done': self.ffmpeg_initial_analysis_done,
         }
         temporary = SETTINGS_FILE.with_suffix('.tmp')
         temporary.write_text(json.dumps(values, indent=2), encoding='utf-8')
@@ -110,6 +123,7 @@ class Window:
                    parent=self.main_frame).pack(anchor='w', padx=31)
         box = tk.Frame(self.main_frame, bg=CARD, padx=23, pady=19)
         box.pack(fill='x', padx=25, pady=(21, 10))
+        self.connection_box = box
         self.label('ENDEREÇO DO COMPUTADOR', 9, True, MUTED, box).pack(anchor='w')
         self.label(self.address.get(), 17, True, TEXT, box).pack(anchor='w', pady=(5, 13))
         self.label('CÓDIGO DE PAREAMENTO', 9, True, MUTED, box).pack(anchor='w')
@@ -159,6 +173,7 @@ class Window:
                  font=('Segoe UI', 9, 'bold')).pack(anchor='w', padx=22, pady=(18, 8))
         self.sidebar_button('⌂  Painel', self.show_dashboard)
         self.sidebar_button('⚙  Configurações', self.show_settings)
+        self.sidebar_button('📖  Tutorial', self.show_tutorial)
         self.sidebar_button('ⓘ  Sobre o OpenMirror', self.show_about)
         tk.Frame(self.sidebar, bg='#263247', height=1).pack(fill='x', padx=22, pady=18)
         tk.Button(self.sidebar, text='Fechar menu', command=self.toggle_sidebar,
@@ -339,6 +354,195 @@ class Window:
         self.show_page(self.about_page)
         self.close_sidebar()
 
+    def show_tutorial(self):
+        if not hasattr(self, 'tutorial_page'):
+            window = tk.Frame(self.root, bg=BG)
+            self.page_header(window, 'Tutorial')
+            tk.Label(window, text='Como usar o OpenMirror', bg=BG, fg=TEXT,
+                     font=('Segoe UI', 18, 'bold')).pack(anchor='w', padx=25, pady=(8, 8))
+            ffmpeg_header = tk.Frame(window, bg=BG)
+            ffmpeg_header.pack(fill='x', padx=25, pady=(8, 0))
+            tk.Label(
+                ffmpeg_header,
+                text='FFmpeg é necessário para usar H.264. Sem ele, o modo MJPEG continua disponível.',
+                bg=BG, fg=MUTED, justify='left', wraplength=490,
+                font=('Segoe UI', 10)
+            ).pack(side='left', anchor='w')
+            tk.Button(
+                ffmpeg_header, text='ⓘ', command=self.toggle_ffmpeg_info,
+                bg=BG, fg=ACCENT, activebackground=BG, activeforeground=TEXT,
+                borderwidth=0, font=('Segoe UI', 13, 'bold'), cursor='hand2',
+                padx=6, pady=0
+            ).pack(side='right', anchor='n')
+            self.tutorial_ffmpeg_info = tk.Frame(window, bg=CARD, padx=12, pady=10)
+            tk.Label(
+                self.tutorial_ffmpeg_info,
+                text=(
+                    'Melhor opção: FFmpeg Release Essentials para Windows 64-bit, '
+                    'em formato ZIP estático.\n\n'
+                    'Depois de extrair, copie apenas ffmpeg.exe da pasta bin para:\n'
+                    'windows\\tools\\ffmpeg.exe\n\n'
+                    'O pacote Full não é necessário para o OpenMirror. O botão de análise '
+                    'confirma a versão e os recursos disponíveis.\n\n'
+                    'Download oficial: gyan.dev/ffmpeg/builds/'
+                ),
+                bg=CARD, fg=TEXT, justify='left', anchor='w', wraplength=500,
+                font=('Segoe UI', 9)
+            ).pack(fill='x')
+            tk.Button(
+                self.tutorial_ffmpeg_info, text='Abrir página oficial',
+                command=lambda: webbrowser.open('https://www.gyan.dev/ffmpeg/builds/'),
+                bg=CARD, fg=ACCENT, activebackground=CARD, activeforeground=TEXT,
+                borderwidth=0, font=('Segoe UI', 9, 'underline'), cursor='hand2',
+                padx=0, pady=4
+            ).pack(anchor='w')
+            self.tutorial_ffmpeg_status = tk.Label(
+                window, text=self.ffmpeg_info.get(), bg=BG, fg=MUTED,
+                justify='left', wraplength=530, font=('Segoe UI', 9)
+            )
+            self.tutorial_ffmpeg_status.pack(anchor='w', padx=25, pady=(8, 0))
+            self.tutorial_ffmpeg_button = tk.Button(
+                window, text='Analisar FFmpeg',
+                command=self.analyze_ffmpeg, bg=CARD, fg=TEXT,
+                activebackground='#202b3e', activeforeground=TEXT,
+                borderwidth=0, font=('Segoe UI', 10), cursor='hand2',
+                padx=12, pady=8
+            )
+            self.tutorial_ffmpeg_button.pack(anchor='w', padx=25, pady=(10, 0))
+            self.tutorial_ffmpeg_install_button = tk.Button(
+                window, text='Redirecionar para instalar FFmpeg',
+                command=self.install_ffmpeg, bg=CARD, fg=TEXT,
+                activebackground='#202b3e', activeforeground=TEXT,
+                borderwidth=0, font=('Segoe UI', 10), cursor='hand2',
+                padx=12, pady=8
+            )
+            self.tutorial_ffmpeg_install_button.pack(anchor='w', padx=25, pady=(8, 0))
+            text = (
+                '1. Inicie o servidor\n\n'
+                'Clique em “Iniciar transmissão” no painel Windows. O endereço e o PIN '
+                'aparecerão na tela.\n\n'
+                '2. Conecte o celular\n\n'
+                'O celular e o PC devem estar na mesma rede local. Digite o endereço e o PIN '
+                'no app Android ou use “Procurar PC na rede”.\n\n'
+                '3. Escolha o vídeo\n\n'
+                'H.264 é o modo recomendado. Se o FFmpeg não estiver instalado, use MJPEG '
+                'nas configurações do app Android.\n\n'
+                '4. Controle o PC\n\n'
+                'Toque para clicar, arraste para mover janelas, use dois dedos para rolar e '
+                'toque longo para o botão direito.\n\n'
+                'Dicas: prefira Wi-Fi 5 GHz e mantenha o uso somente na rede local privada.'
+            )
+            tk.Label(window, text=text, bg=BG, fg=MUTED, justify='left',
+                     anchor='nw', wraplength=530, font=('Segoe UI', 10)).pack(
+                         anchor='w', padx=25, pady=(8, 0))
+            link = tk.Label(window, text='Abrir documentação no GitHub', bg=BG, fg=ACCENT,
+                            cursor='hand2', font=('Segoe UI', 10, 'underline'))
+            link.pack(anchor='w', padx=25, pady=(20, 0))
+            link.bind('<Button-1>', lambda _event: webbrowser.open(
+                'https://github.com/jhonnyboy-sgbr/OpenMirror'))
+            self.tutorial_page = window
+        self.show_page(self.tutorial_page)
+        self.close_sidebar()
+
+    def run_initial_ffmpeg_analysis(self):
+        self.ffmpeg_initial_analysis_done = True
+        try:
+            self.save_settings()
+        except OSError as exc:
+            messagebox.showerror(
+                'Configurações',
+                f'Não foi possível salvar o registro da análise inicial.\n\n{exc}'
+            )
+            self.ffmpeg_initial_analysis_done = False
+            return
+        threading.Thread(target=self.probe, daemon=True).start()
+
+    def toggle_ffmpeg_info(self):
+        if self.tutorial_ffmpeg_info.winfo_manager():
+            self.tutorial_ffmpeg_info.pack_forget()
+        else:
+            self.tutorial_ffmpeg_info.pack(
+                fill='x', padx=25, pady=(8, 0), before=self.tutorial_ffmpeg_status
+            )
+
+    def analyze_ffmpeg(self):
+        self.tutorial_ffmpeg_button.configure(state='disabled', text='Analisando FFmpeg…')
+        threading.Thread(target=self._analyze_ffmpeg_worker, daemon=True).start()
+
+    def _analyze_ffmpeg_worker(self):
+        exe = locate_ffmpeg(BASE)
+        if not exe:
+            self.root.after(0, self._finish_ffmpeg_analysis, False,
+                           'FFmpeg não encontrado. H.264 não estará disponível até a instalação.')
+            return
+        info = probe_ffmpeg(exe)
+        self.root.after(
+            0, self._finish_ffmpeg_analysis, True,
+            f"FFmpeg encontrado: {info['version'] or 'versão desconhecida'}."
+        )
+
+    def _finish_ffmpeg_analysis(self, available, text):
+        self.tutorial_ffmpeg_status.configure(text=text)
+        self.tutorial_ffmpeg_button.configure(state='normal')
+        if available:
+            self.tutorial_ffmpeg_button.configure(text='Analisar novamente')
+            self.tutorial_ffmpeg_install_button.configure(
+                state='disabled', text='FFmpeg já está instalado'
+            )
+        else:
+            self.tutorial_ffmpeg_button.configure(text='Analisar FFmpeg')
+            self.tutorial_ffmpeg_install_button.configure(
+                state='normal', text='Redirecionar para instalar FFmpeg'
+            )
+
+    def show_welcome(self):
+        if hasattr(self, 'welcome_overlay'):
+            return
+        overlay = tk.Frame(self.main_frame, bg=BG)
+        overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+        content = tk.Frame(overlay, bg=CARD, padx=20, pady=16,
+                           highlightbackground='#2b3a55', highlightthickness=1)
+        tk.Label(content, text='Bem-vindo ao OpenMirror', bg=CARD, fg=TEXT,
+                 font=('Segoe UI', 16, 'bold')).pack(anchor='w', pady=(0, 12))
+        tk.Label(content, text=(
+            'Use o celular como controle remoto do Windows.\n\n'
+            '1. Inicie a transmissão neste painel.\n'
+            '2. Abra o app Android e informe o endereço do PC.\n'
+            '3. Digite o PIN exibido aqui e toque em Conectar.\n\n'
+            'O PC e o celular precisam estar na mesma rede local.'
+        ), bg=CARD, fg=MUTED, justify='left', wraplength=430,
+                 font=('Segoe UI', 10)).pack(anchor='w')
+        link = tk.Label(content, text='Abrir repositório no GitHub', bg=CARD, fg=ACCENT,
+                        cursor='hand2', font=('Segoe UI', 10, 'underline'))
+        link.pack(anchor='w', pady=(14, 8))
+        link.bind('<Button-1>', lambda _event: webbrowser.open(
+            'https://github.com/jhonnyboy-sgbr/OpenMirror'))
+        dont_show = tk.BooleanVar(value=False)
+        tk.Checkbutton(content, text='Não exibir novamente', variable=dont_show,
+                       bg=CARD, fg=TEXT, selectcolor=CARD, activebackground=CARD,
+                       activeforeground=TEXT).pack(anchor='w')
+        tk.Button(content, text='Entendi', command=lambda: self.close_welcome(
+            dont_show.get()), bg=ACCENT, fg='white',
+                  activebackground='#2766cc', borderwidth=0,
+                  font=('Segoe UI', 10, 'bold'), cursor='hand2',
+                  padx=18, pady=8).pack(anchor='e', pady=(8, 0))
+        content.place(relx=0.5, rely=0.5, anchor='center', relwidth=0.82)
+        self.welcome_overlay = overlay
+        self.welcome_card = content
+
+    def close_welcome(self, dont_show):
+        self.welcome_dismissed = dont_show
+        if dont_show:
+            try:
+                self.save_settings()
+            except OSError as exc:
+                messagebox.showerror('Configurações', f'Não foi possível salvar a preferência.\n\n{exc}')
+                return
+        if hasattr(self, 'welcome_overlay'):
+            self.welcome_overlay.destroy()
+            del self.welcome_overlay
+            del self.welcome_card
+
     def page_header(self, parent, title):
         header = tk.Frame(parent, bg=BG)
         header.pack(fill='x', padx=18, pady=(18, 0))
@@ -367,6 +571,8 @@ class Window:
 
     def update_ffmpeg_status(self, text, available):
         self.ffmpeg_info.set(text)
+        if hasattr(self, 'tutorial_ffmpeg_status'):
+            self.tutorial_ffmpeg_status.configure(text=text)
         if hasattr(self, 'ffmpeg_install_button'):
             if available:
                 self.ffmpeg_install_button.pack_forget()
@@ -378,10 +584,11 @@ class Window:
             self.update_ffmpeg_status('FFmpeg já está disponível.', True)
             return
         if not shutil.which('winget'):
-            messagebox.showerror(
+            webbrowser.open('https://www.gyan.dev/ffmpeg/builds/')
+            messagebox.showinfo(
                 'FFmpeg',
-                'O winget não foi encontrado. Instale o App Installer da Microsoft '
-                'ou coloque ffmpeg.exe em windows\\tools\\.'
+                'O winget não foi encontrado. A página oficial de download do FFmpeg foi aberta. '
+                'Depois de baixar, coloque ffmpeg.exe em windows\\tools\\.'
             )
             return
         if not messagebox.askyesno(
@@ -389,7 +596,11 @@ class Window:
                 'O OpenMirror vai usar o winget para instalar FFmpeg (Gyan.FFmpeg). '
                 'O Windows poderá pedir confirmação. Deseja continuar?'):
             return
-        self.ffmpeg_install_button.configure(state='disabled', text='Instalando FFmpeg…')
+        button = getattr(self, 'tutorial_ffmpeg_install_button', None)
+        if button is None:
+            button = getattr(self, 'ffmpeg_install_button', None)
+        if button is not None:
+            button.configure(state='disabled', text='Instalando FFmpeg…')
         threading.Thread(target=self._install_ffmpeg_worker, daemon=True).start()
 
     def _install_ffmpeg_worker(self):
@@ -408,13 +619,24 @@ class Window:
             self.root.after(0, self._finish_ffmpeg_install, exc)
 
     def _finish_ffmpeg_install(self, error):
+        button = getattr(self, 'tutorial_ffmpeg_install_button', None)
+        if button is None:
+            button = getattr(self, 'ffmpeg_install_button', None)
         if error is not None:
-            self.ffmpeg_install_button.configure(state='normal', text='Instalar FFmpeg automaticamente')
+            if button is not None:
+                button.configure(state='normal', text='Instalar FFmpeg automaticamente')
             messagebox.showerror('FFmpeg', f'Não foi possível instalar o FFmpeg.\n\n{error}')
             return
-        self.ffmpeg_install_button.configure(state='normal', text='Instalar FFmpeg automaticamente')
-        messagebox.showinfo('FFmpeg', 'FFmpeg instalado. O diagnóstico será atualizado agora.')
-        threading.Thread(target=self.probe, daemon=True).start()
+        if button is not None:
+            button.configure(state='normal', text='Instalar FFmpeg automaticamente')
+        self.update_ffmpeg_status(
+            'FFmpeg instalado. Clique em “Analisar FFmpeg” para verificar os recursos.',
+            True
+        )
+        messagebox.showinfo(
+            'FFmpeg',
+            'FFmpeg instalado. Clique em “Analisar FFmpeg” para verificar os recursos.'
+        )
 
     def open_log(self):
         path = BASE / 'openmirror_server.log'
