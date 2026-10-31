@@ -35,17 +35,22 @@ melhor** (Fase 1 do plano), não adicionar recursos novos de uma vez.
 ## 1 — Rodar no PC (Windows 10)
 
 1. Extraia o ZIP numa pasta nova e feche a versão anterior.
-2. Duplo clique em `windows/INICIAR_OPENMIRROR.bat` (requer Python 3.11+ com *Add Python to PATH*;
+2. Para uso simples, dê duplo clique em [`downloads/OpenMirror.exe`](downloads/OpenMirror.exe).
+   O executável já inclui o painel, o servidor e as dependências Python; o FFmpeg continua opcional
+   para H.264 e deve ficar no PATH ou em `downloads/tools/`.
+3. Como alternativa para desenvolvimento, dê duplo clique em `windows/INICIAR_OPENMIRROR.bat` (requer Python 3.11+ com *Add Python to PATH*;
    instala `aiohttp`, `mss` e `Pillow` na primeira vez).
-3. No painel, olhe a linha do **FFmpeg**: ela diz o que o seu FFmpeg tem (x264, DXGI, AMD AMF) e **se o
+4. No painel, olhe a linha do **FFmpeg**: ela diz o que o seu FFmpeg tem (x264, DXGI, AMD AMF) e **se o
    AMF funciona de verdade**. Comece com perfil **Equilibrado**, captura **auto**, encoder **software**.
-4. **Iniciar transmissão**. Libere o firewall **só para redes privadas** (TCP 8765 e UDP 8766).
-5. O painel mostra o endereço `http://192.168.x.x:8765` e o PIN de 4 dígitos.
+5. **Iniciar transmissão**. Libere o firewall **só para redes privadas** (TCP 8765 e UDP 8766).
+6. O painel mostra o endereço `http://192.168.x.x:8765` e o PIN de 4 dígitos.
 
 PC por cabo Ethernet + celular no Wi-Fi do mesmo roteador funciona normalmente.
 
-**FFmpeg:** `winget install --id Gyan.FFmpeg -e` (feche e reabra o OpenMirror depois) ou copie o
-`ffmpeg.exe` para `windows/tools/`. Para a captura DXGI use FFmpeg **6.0 ou mais novo**.
+**FFmpeg:** se ele não estiver instalado, abra **Menu → Configurações** e clique em
+**Instalar FFmpeg automaticamente**. O OpenMirror pedirá confirmação e usará o `winget` da Microsoft
+para instalar o pacote Gyan.FFmpeg. Como alternativa, execute `winget install --id Gyan.FFmpeg -e`
+ou copie o `ffmpeg.exe` para `windows/tools/`. Para a captura DXGI use FFmpeg **6.0 ou mais novo**.
 `python windows/server.py --probe` mostra o diagnóstico em texto. Sem FFmpeg o modo MJPEG segue funcionando.
 
 **Opções novas do painel/servidor:** `--capture gdigrab|ddagrab|auto` (ddagrab = DXGI, **experimental**,

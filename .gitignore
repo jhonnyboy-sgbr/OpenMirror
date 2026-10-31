@@ -12,4 +12,6 @@ android/local.properties
 windows/openmirror_settings.json
 *.lnk
 windows/tools/
+windows/build-pyinstaller/
+windows/OpenMirror.spec
 h264-logcat.txt

@@ -1,6 +1,7 @@
 """Painel Windows para iniciar/parar o servidor OpenMirror."""
 import os
 import json
+import shutil
 import subprocess
 import sys
 import threading
@@ -14,7 +15,7 @@ from om_security import PIN_LENGTH, generate_pin
 from server import lan_ip
 from video_h264 import check_encoder, locate_ffmpeg, probe_ffmpeg
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(sys.executable).resolve().parent if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent
 SETTINGS_FILE = BASE / 'openmirror_settings.json'
 BG = '#0c1018'
 CARD = '#161d2b'
@@ -256,6 +257,16 @@ class Window:
                      bg=BG, fg=MUTED, justify='left', font=('Segoe UI', 9)).pack(anchor='w', padx=25, pady=(18, 0))
             tk.Label(window, textvariable=self.ffmpeg_info, bg=BG, fg=MUTED,
                      justify='left', wraplength=540, font=('Segoe UI', 9)).pack(anchor='w', padx=25, pady=(8, 0))
+            self.ffmpeg_install_button = tk.Button(
+                window, text='Instalar FFmpeg automaticamente',
+                command=self.install_ffmpeg, bg=CARD, fg=TEXT,
+                activebackground='#202b3e', activeforeground=TEXT,
+                borderwidth=0, font=('Segoe UI', 10), cursor='hand2',
+                padx=12, pady=8
+            )
+            self.ffmpeg_install_button.pack(anchor='w', padx=25, pady=(12, 0))
+            if locate_ffmpeg(BASE):
+                self.ffmpeg_install_button.pack_forget()
             self.settings_page = window
         else:
             self.sync_settings_from_applied()
@@ -352,7 +363,58 @@ class Window:
             else:
                 parts.append('AMD AMF ✗ (não listado neste FFmpeg)')
             text = ' · '.join(parts)
-        self.root.after(0, lambda: self.ffmpeg_info.set(text))
+        self.root.after(0, lambda: self.update_ffmpeg_status(text, bool(exe)))
+
+    def update_ffmpeg_status(self, text, available):
+        self.ffmpeg_info.set(text)
+        if hasattr(self, 'ffmpeg_install_button'):
+            if available:
+                self.ffmpeg_install_button.pack_forget()
+            else:
+                self.ffmpeg_install_button.pack(anchor='w', padx=25, pady=(12, 0))
+
+    def install_ffmpeg(self):
+        if locate_ffmpeg(BASE):
+            self.update_ffmpeg_status('FFmpeg já está disponível.', True)
+            return
+        if not shutil.which('winget'):
+            messagebox.showerror(
+                'FFmpeg',
+                'O winget não foi encontrado. Instale o App Installer da Microsoft '
+                'ou coloque ffmpeg.exe em windows\\tools\\.'
+            )
+            return
+        if not messagebox.askyesno(
+                'Instalar FFmpeg',
+                'O OpenMirror vai usar o winget para instalar FFmpeg (Gyan.FFmpeg). '
+                'O Windows poderá pedir confirmação. Deseja continuar?'):
+            return
+        self.ffmpeg_install_button.configure(state='disabled', text='Instalando FFmpeg…')
+        threading.Thread(target=self._install_ffmpeg_worker, daemon=True).start()
+
+    def _install_ffmpeg_worker(self):
+        try:
+            result = subprocess.run(
+                ['winget', 'install', '--id', 'Gyan.FFmpeg', '--exact',
+                 '--accept-source-agreements', '--accept-package-agreements'],
+                capture_output=True, text=True, timeout=600,
+                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+            )
+            if result.returncode != 0:
+                detail = (result.stderr or result.stdout or 'winget retornou erro').strip()
+                raise RuntimeError(detail[-1000:])
+            self.root.after(0, self._finish_ffmpeg_install, None)
+        except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
+            self.root.after(0, self._finish_ffmpeg_install, exc)
+
+    def _finish_ffmpeg_install(self, error):
+        if error is not None:
+            self.ffmpeg_install_button.configure(state='normal', text='Instalar FFmpeg automaticamente')
+            messagebox.showerror('FFmpeg', f'Não foi possível instalar o FFmpeg.\n\n{error}')
+            return
+        self.ffmpeg_install_button.configure(state='normal', text='Instalar FFmpeg automaticamente')
+        messagebox.showinfo('FFmpeg', 'FFmpeg instalado. O diagnóstico será atualizado agora.')
+        threading.Thread(target=self.probe, daemon=True).start()
 
     def open_log(self):
         path = BASE / 'openmirror_server.log'
@@ -375,10 +437,14 @@ class Window:
 
     def start(self):
         pin = generate_pin()
-        args = server_args(sys.executable, str(BASE / 'server.py'), fps=self.fps.get(),
-                           width=self.width.get(), bitrate=self.bitrate.get(),
-                           encoder=self.encoder.get(), capture=self.capture.get(),
-                           eager_flush=self.eager.get())
+        server_options = server_args(sys.executable, str(BASE / 'server.py'), fps=self.fps.get(),
+                                     width=self.width.get(), bitrate=self.bitrate.get(),
+                                     encoder=self.encoder.get(), capture=self.capture.get(),
+                                     eager_flush=self.eager.get())
+        if getattr(sys, 'frozen', False):
+            args = [sys.executable, '--server'] + server_options[2:]
+        else:
+            args = server_options
         env = dict(os.environ, OPENMIRROR_PIN=pin)  # PIN fora da linha de comando
         creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
         try:
@@ -430,4 +496,8 @@ class Window:
 if __name__ == '__main__':
     if os.name != 'nt':
         raise SystemExit('O painel Windows só roda no Windows.')
-    Window().root.mainloop()
+    if '--server' in sys.argv[1:]:
+        from server import main as server_main
+        server_main()
+    else:
+        Window().root.mainloop()

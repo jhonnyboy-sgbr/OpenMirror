@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import socket
+import sys
 import threading
 import time
 from collections import deque
@@ -33,6 +34,8 @@ from video_h264 import (EncoderError, EncoderSession, build_attempts, check_enco
                         framed_v3, header, header_v3, locate_ffmpeg, probe_ffmpeg)
 
 BASE = Path(__file__).resolve().parent
+if getattr(sys, 'frozen', False):
+    BASE = Path(sys.executable).resolve().parent
 WEB_FILE = BASE.parent / 'shared' / 'index.html'
 LOGGER = logging.getLogger('openmirror')
 _CAPTURE_LOCAL = threading.local()
