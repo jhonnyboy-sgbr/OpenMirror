@@ -21,6 +21,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -47,6 +48,7 @@ public class MainActivity extends Activity {
     private boolean webFullscreen;
     private View customView;
     private WebChromeClient.CustomViewCallback customCallback;
+    private boolean menuOpen;
 
     private int dp(int n) { return (int)(n * getResources().getDisplayMetrics().density + .5f); }
 
@@ -135,8 +137,19 @@ public class MainActivity extends Activity {
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(25), dp(35), dp(25), dp(28));
         scroll.addView(panel);
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        Button menu = button("☰");
+        menu.setTextSize(20);
+        menu.setMinHeight(dp(44));
+        menu.setPadding(dp(8), 0, dp(8), 0);
+        menu.setBackgroundTintList(android.content.res.ColorStateList.valueOf(BG));
+        menu.setTextColor(TXT);
+        header.addView(menu, new LinearLayout.LayoutParams(dp(52), dp(48)));
         TextView title = text("◈  OpenMirror", 29, true);
-        panel.addView(title);
+        header.addView(title, new LinearLayout.LayoutParams(-1, -2));
+        panel.addView(header);
+        menu.setOnClickListener(v -> toggleMenu());
         TextView subtitle = text(AppInfo.VERSION + "  •  Seu Windows no celular", 14, false);
         subtitle.setTextColor(Color.rgb(158, 177, 206));
         LinearLayout.LayoutParams sub = new LinearLayout.LayoutParams(-1, -2);
@@ -176,7 +189,7 @@ public class MainActivity extends Activity {
         pin.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
         panel.addView(pin, new LinearLayout.LayoutParams(-1, dp(58)));
 
-        Button nativeButton = button("▶  CONECTAR EM H.264 NATIVO");
+        Button nativeButton = button("▶  CONECTAR");
         LinearLayout.LayoutParams btnSpace = new LinearLayout.LayoutParams(-1, dp(58));
         btnSpace.topMargin = dp(25); panel.addView(nativeButton, btnSpace);
         nativeButton.setOnClickListener(v -> {
@@ -184,26 +197,109 @@ public class MainActivity extends Activity {
             String code = pin.getText().toString().trim();
             if (h == null) return;
             if (!code.matches("[0-9]{4}")) { pin.setError("Digite os 4 dígitos do painel Windows"); return; }
-            Intent intent = new Intent(this, NativeStreamActivity.class);
-            intent.putExtra("host", h);
-            intent.putExtra("pin", code);
-            startActivity(intent);
+            if (getPreferences(MODE_PRIVATE).getBoolean("use_mjpeg", false)) {
+                showWeb("http://" + h);
+            } else {
+                Intent intent = new Intent(this, NativeStreamActivity.class);
+                intent.putExtra("host", h);
+                intent.putExtra("pin", code);
+                startActivity(intent);
+            }
             pin.setText("");
         });
 
-        Button fallback = button("Abrir modo compatível (MJPEG)");
-        fallback.setBackgroundTintList(android.content.res.ColorStateList.valueOf(CARD));
-        fallback.setTextColor(TXT);
-        LinearLayout.LayoutParams fallbackSpace = new LinearLayout.LayoutParams(-1, dp(56));
-        fallbackSpace.topMargin = dp(13); panel.addView(fallback, fallbackSpace);
-        fallback.setOnClickListener(v -> {
-            String h = validate(host);
-            if (h != null) showWeb("http://" + h);
-        });
-        TextView foot = text("H.264 requer FFmpeg no computador. O modo compatível funciona sem FFmpeg. A conexão NÃO é criptografada: use apenas na rede local privada, sem redirecionamento de portas.", 12, false);
+        TextView foot = text("Modo de vídeo: " + (getPreferences(MODE_PRIVATE).getBoolean("use_mjpeg", false)
+                ? "MJPEG compatível" : "H.264 nativo") + ". Use apenas na rede local privada.", 12, false);
         foot.setTextColor(Color.rgb(151, 170, 195));
         LinearLayout.LayoutParams footSpace = new LinearLayout.LayoutParams(-1, -2);
         footSpace.topMargin = dp(21); panel.addView(foot, footSpace);
+    }
+
+    private void toggleMenu() {
+        if (menuOpen) {
+            showLauncher();
+            return;
+        }
+        menuOpen = true;
+        clear();
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setBackgroundColor(BG);
+        page.setPadding(dp(25), dp(35), dp(25), dp(28));
+        root.addView(page, new LinearLayout.LayoutParams(-1, -1));
+        TextView title = text("☰  Menu", 28, true);
+        page.addView(title);
+        TextView subtitle = text("OpenMirror", 14, false);
+        subtitle.setTextColor(Color.rgb(158, 177, 206));
+        page.addView(subtitle);
+        Button settings = button("⚙  Configurações");
+        settings.setBackgroundTintList(android.content.res.ColorStateList.valueOf(CARD));
+        settings.setTextColor(TXT);
+        LinearLayout.LayoutParams settingsSpace = new LinearLayout.LayoutParams(-1, dp(56));
+        settingsSpace.topMargin = dp(35);
+        page.addView(settings, settingsSpace);
+        settings.setOnClickListener(v -> showSettings());
+        Button back = button("←  Voltar ao painel");
+        back.setBackgroundTintList(android.content.res.ColorStateList.valueOf(BG));
+        back.setTextColor(TXT);
+        page.addView(back, new LinearLayout.LayoutParams(-1, dp(56)));
+        back.setOnClickListener(v -> {
+            menuOpen = false;
+            showLauncher();
+        });
+    }
+
+    private void showSettings() {
+        clear();
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setBackgroundColor(BG);
+        page.setPadding(dp(25), dp(35), dp(25), dp(28));
+        root.addView(page, new LinearLayout.LayoutParams(-1, -1));
+        Button back = button("←  Voltar ao menu");
+        back.setBackgroundTintList(android.content.res.ColorStateList.valueOf(BG));
+        back.setTextColor(TXT);
+        page.addView(back, new LinearLayout.LayoutParams(-1, dp(50)));
+        back.setOnClickListener(v -> {
+            menuOpen = false;
+            toggleMenu();
+        });
+        TextView title = text("Configurações", 28, true);
+        LinearLayout.LayoutParams titleSpace = new LinearLayout.LayoutParams(-1, -2);
+        titleSpace.topMargin = dp(15);
+        page.addView(title, titleSpace);
+        TextView hint = text("Escolha o modo de vídeo usado ao conectar ao PC.", 14, false);
+        hint.setTextColor(Color.rgb(182, 195, 218));
+        page.addView(hint);
+
+        CheckBox mjpeg = new CheckBox(this);
+        mjpeg.setText("Usar MJPEG compatível");
+        mjpeg.setTextColor(TXT);
+        mjpeg.setTextSize(16);
+        mjpeg.setChecked(getPreferences(MODE_PRIVATE).getBoolean("use_mjpeg", false));
+        LinearLayout.LayoutParams mjpegSpace = new LinearLayout.LayoutParams(-1, dp(58));
+        mjpegSpace.topMargin = dp(25);
+        page.addView(mjpeg, mjpegSpace);
+        TextView details = text("Desmarcado: H.264 nativo, recomendado para melhor qualidade e menor uso de rede.\n"
+                + "Marcado: MJPEG, útil quando o FFmpeg ou o decoder H.264 não estiver disponível.", 13, false);
+        details.setTextColor(Color.rgb(182, 195, 218));
+        page.addView(details);
+        Button apply = button("Aplicar");
+        LinearLayout.LayoutParams applySpace = new LinearLayout.LayoutParams(-1, dp(56));
+        applySpace.topMargin = dp(25);
+        page.addView(apply, applySpace);
+        apply.setOnClickListener(v -> {
+            getPreferences(MODE_PRIVATE).edit().putBoolean("use_mjpeg", mjpeg.isChecked()).apply();
+            Toast.makeText(this, "Configuração aplicada.", Toast.LENGTH_SHORT).show();
+        });
+        Button home = button("←  Voltar ao painel");
+        home.setBackgroundTintList(android.content.res.ColorStateList.valueOf(BG));
+        home.setTextColor(TXT);
+        page.addView(home, new LinearLayout.LayoutParams(-1, dp(56)));
+        home.setOnClickListener(v -> {
+            menuOpen = false;
+            showLauncher();
+        });
     }
 
     /** Procura PCs com o OpenMirror aberto na mesma rede (UDP, sem nenhum segredo trafegando). */

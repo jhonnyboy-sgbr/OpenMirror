@@ -6,7 +6,9 @@
     <application
         android:name=".OpenMirrorApp"
         android:allowBackup="false"
+        android:icon="@drawable/ic_launcher"
         android:label="OpenMirror"
+        android:roundIcon="@drawable/ic_launcher"
         android:usesCleartextTraffic="true"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:supportsRtl="true">

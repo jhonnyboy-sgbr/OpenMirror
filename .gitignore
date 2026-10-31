@@ -9,6 +9,7 @@ android/local.properties
 *.pyc
 *.pyo
 *.log
+windows/openmirror_settings.json
 *.lnk
 windows/tools/
 h264-logcat.txt
