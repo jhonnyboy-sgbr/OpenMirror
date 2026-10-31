@@ -54,6 +54,13 @@ cai para GDI se falhar), `--backlog N`, `--eager-flush` (experimental, ~1 quadro
 
 ## 2 — Compilar o APK (Android Studio)
 
+### Download rápido
+
+Uma cópia atual do APK de debug está em
+[`downloads/OpenMirror-0.3.1-debug.apk`](downloads/OpenMirror-0.3.1-debug.apk).
+Baixe esse arquivo pelo GitHub e instale-o no Android. Ele é uma build de teste e pode exigir
+que a instalação de aplicativos de fontes desconhecidas esteja autorizada.
+
 Requisitos: Android Studio recente (JDK 17+), SDK Platform 35, internet na primeira sincronização.
 
 1. **Open** → pasta `android`. O `gradle-wrapper.properties` pede o Gradle 8.9 e o Android Studio
